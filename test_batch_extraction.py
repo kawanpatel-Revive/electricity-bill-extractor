@@ -31,9 +31,12 @@ def test_schema_matches_reference_workbook():
         "Electricity Duty Credits",
         "TOU Charge Credits",
         "TDS Credits",
+        "Other Debits",
     ]
     expected.remove("Security Deposit Interest")
-    expected.insert(expected.index("Other Credits"), "Security Deposit Interest")
+    expected.remove("Other Credits")
+    advance_index = expected.index("Adv Payment/ Adjustment")
+    expected[advance_index:advance_index] = ["Security Deposit Interest", "Other Credits"]
     unit_rate_index = expected.index("Unit Rate (Total Consumption Charge)")
     demand_unit_rate_index = expected.index("Total Consumption-Demand Charge Unit Rate\n\n")
     expected[unit_rate_index], expected[demand_unit_rate_index] = (
@@ -41,7 +44,7 @@ def test_schema_matches_reference_workbook():
         expected[unit_rate_index],
     )
 
-    assert len(FIELDS) == 64
+    assert len(FIELDS) == 65
     assert expected == [field.label for field in FIELDS]
 
 
@@ -90,7 +93,7 @@ def test_torrent_power_parser():
     assert values["actual_max_demand"] == 612
     assert values["billing_demand"] == 765
     assert values["kwh_consumed"] == 249690
-    assert values["fuel_surcharge"] == 1003612.58
+    assert values["fuel_surcharge"] is None
     assert values["base_fppas"] == 926797.08
     assert values["fppas_charges"] == 76815.50
     assert values["fppas_percent"] == pytest.approx(0.034)
@@ -99,6 +102,76 @@ def test_torrent_power_parser():
     assert values["solar_net_billed_units"] == 249139
     assert values["total_payable"] == 2779320.78
     assert not record.warnings
+
+
+def test_torrent_old_fpppa_layout_populates_charge_components():
+    values = extract("MARCH 25.pdf")[0].values
+
+    assert values["demand_charges"] == 198900.00
+    assert values["energy_charges"] == 992204.85
+    assert values["base_fppas"] == 830835.27
+    assert values["fppas_charges"] is None
+    assert values["fuel_surcharge"] is None
+    assert values["total_energy_charges"] == pytest.approx(2079092.99)
+    assert values["total_consumption_charges"] == pytest.approx(2079092.99)
+
+
+def test_torrent_combined_credit_is_split_by_solar_note():
+    values = extract("DEC 25.pdf")[0].values
+
+    assert values["solar_credit"] == pytest.approx(-9911.25)
+    assert values["other_credits"] == pytest.approx(-2906.11)
+    assert values["calculated_adjustment"] == pytest.approx(25428.54)
+
+
+def test_torrent_security_interest_and_tds_are_separated():
+    values = extract("May'25.pdf")[0].values
+
+    assert values["security_deposit_interest"] == pytest.approx(-137642.23)
+    assert values["other_debits"] == pytest.approx(13765.00)
+
+
+def test_torrent_ocr_layout_recovers_header_setoff_and_banking_units():
+    text = """
+Torrent Power
+ACCUMAX LAB DEVICES PVT LTD CONTRACT DEMAND BILLING MONTH HTMD1
+PLOT NO.14,15,16 and 32 900 KW July 2025
+GIDC BILLING DEMAND READING DATE CUSTOMERID
+765.0 KW 31/07/25 100358213
+Registered Mobile: *5552 100 01/08/25
+Meter No.:29800060
+Units 763.000 334410.000 122480.000 335970.000 94160.000
+Energy charges (A) 1517692.10
+Fixed demand charges (B) 198900.00
+Excess demand charges 0.00
+Base FPPAS @Rs. 3.72/unit (C) 1243142.16
+FPPAS charges @3.40% of (A+B+C) 100630.96
+TOU charges 122480.00
+Power Factor adjustment charges 7022.61-
+NTC rebate 28248.00-
+Total energy charges 3147574.61
+Total government duty @15.00% 472136.19
+Banking charges (Solar generation unit-Excess solar unit)@Rs.1.10 43331.20
+Other debit 0.00
+Credit 3748.5-
+Previous dues 3459.39-
+Amount due 3655834.11
+Solar generation units are: 41058, Net billed units- 334178
+Solar Sstoff Units 232.00
+Credit of Rs. 3748.50 for 1666 excess Solar
+"""
+
+    from bill_extractor.providers.torrent import TorrentParser
+
+    values = TorrentParser().parse(text)
+
+    assert values["billing_month"] == "JUL-2025"
+    assert values["tariff_category"] == "HTMD1"
+    assert values["solar_setoff_units"] == 232
+    assert values["solar_banking_units"] == 39392
+    assert values["solar_export_units"] == 1666
+    assert values["electricity_duty"] == pytest.approx(472136.19)
+    assert values["fppas_charges"] == pytest.approx(100630.96)
 
 
 @pytest.mark.parametrize(

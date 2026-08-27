@@ -51,6 +51,7 @@ def calculate_record(values: dict[str, str | float | None]) -> None:
         number("electricity_duty_credits"),
         number("tou_charge_credits"),
         number("tds_credits"),
+        number("other_debits"),
         number("other_credits"),
         number("security_deposit_interest"),
     ]

@@ -1,5 +1,18 @@
 # Changelog
 
+## 2026-08-27
+
+### Added
+- Added a separate Other Debits field for bill adjustments.
+
+### Changed
+- Changed Torrent total energy charges to use the complete bill charge breakdown.
+
+### Fixed
+- Fixed Torrent extraction across legacy and OCR bill layouts.
+- Fixed solar banking units, credits, deposit interest, and related debit adjustments.
+- Fixed FPPAS charges being duplicated in fuel surcharge totals.
+
 ## 2026-08-21
 
 ### Added
