@@ -69,6 +69,28 @@ def test_ugvcl_merged_bill_matches_reference_readings():
     assert april["solar_banking_units"] == 32917
     assert april["calculated_adjustment"] == 22648.10
     assert april["total_payable"] == 424939.03
+    assert april["net_less_demand_unit_rate"] == pytest.approx(
+        (april["total_payable"] - april["demand_charges"]) / april["kwh_consumed"]
+    )
+
+    september = by_month["SEP-2025"]
+    assert september.values["other_debits"] == pytest.approx(13.35)
+    assert september.values["calculated_adjustment"] == pytest.approx(
+        september.values["advance_adjustment"]
+    )
+    assert not september.warnings
+
+    february = by_month["FEB-2026"].values
+    assert february["solar_setoff_units"] == 152
+    assert february["solar_net_billed_units"] == 64864
+    assert february["solar_setoff_credit"] == pytest.approx(-957.00)
+    assert february["other_credits"] == 0
+
+    march = by_month["MAR-2026"].values
+    assert march["solar_setoff_units"] == 83
+    assert march["solar_net_billed_units"] == 54889
+    assert march["solar_setoff_credit"] == pytest.approx(-522.00)
+    assert march["other_credits"] == 0
 
 
 def test_ugvcl_combines_multirow_adjustments():
@@ -313,7 +335,8 @@ Debit Fuel Surcharge 0.45 0.00 FC RECOVERY IN SOLAR SET OFF FOR THE MONTH OF JUL
     assert values["electricity_duty_credits"] == pytest.approx(-93.77)
     assert values["tds_credits"] == pytest.approx(-3625.00)
     assert values["solar_banking_units"] == 8008
-    assert values["other_credits"] == pytest.approx(0.50)
+    assert values["other_debits"] == pytest.approx(0.50)
+    assert values["other_credits"] == 0
 
 
 def test_photographed_bill_and_adjustment_are_merged():
@@ -390,6 +413,6 @@ def test_s21_ugvcl_adjustments(
     assert values["calculated_adjustment"] == pytest.approx(values["advance_adjustment"])
     assert values["net_less_demand_unit_rate"] == pytest.approx(
         (values["total_payable"] - values["demand_charges"])
-        / values["solar_net_billed_units"]
+        / values["kwh_consumed"]
     )
     assert not record.warnings

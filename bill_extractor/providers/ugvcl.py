@@ -254,7 +254,8 @@ class UGVCLParser(ProviderParser):
         solar_export_units = 0.0
         banking_amount = 0.0
         banking_units = 0.0
-        other_adjustments = 0.0
+        other_credits = 0.0
+        other_debits = 0.0
         electricity_duty_credits = 0.0
         tou_charge_credits = 0.0
         tds_credits = 0.0
@@ -266,7 +267,8 @@ class UGVCLParser(ProviderParser):
             rf"^\s*(Credit\s+Board\s+Charges|Credit\s+ED\s+Charges|Credit\s+TDS|"
             rf"Cedit\s+Fuel\s+Surcharge|Credit\s+Fuel\s+Surcharge|Credit\s+JV|"
             rf"Debit\s+Banking\s+Charges?|Debit\s+Electricity\s+Duty|"
-            rf"Debit\s+Fuel\s+Surcharge|Debit\s+TCS)\s+({NUMBER_TOKEN})\s+"
+            rf"Debit\s+Board\s+Charges?|Debit\s+Fuel\s+Surcharge|Debit\s+TCS)\s+"
+            rf"({NUMBER_TOKEN})\s+"
             rf"(?:[A-Z]{{1,4}}\s+)?({NUMBER_TOKEN})\s+(.+)$",
             re.I,
         )
@@ -292,6 +294,7 @@ class UGVCLParser(ProviderParser):
             is_solar_setoff = (
                 "SOLAR SETOFF" in upper_remarks
                 or re.search(r"\bSOLAR\s+(?:BOARD\s+CHARGE\s+|ELEC\.?\s+DUTY\s+)?ADJ\b", upper_remarks)
+                or re.fullmatch(r"\s*SOLAR\s+[A-Z]{3,9}\s+\d{2,4}\s*", upper_remarks)
                 or is_s21_setoff
             )
             if is_credit_ed:
@@ -314,9 +317,9 @@ class UGVCLParser(ProviderParser):
             elif description_lower.startswith("debit tcs"):
                 debit_tcs += amount
             elif description_lower.startswith(("credit", "cedit")):
-                other_adjustments -= amount
+                other_credits -= amount
             elif description_lower.startswith("debit"):
-                other_adjustments += amount
+                other_debits += amount
 
         if not found_adjustment:
             return
@@ -329,7 +332,8 @@ class UGVCLParser(ProviderParser):
         values["electricity_duty_credits"] = electricity_duty_credits
         values["tou_charge_credits"] = tou_charge_credits
         values["tds_credits"] = tds_credits
-        values["other_credits"] = other_adjustments
+        values["other_debits"] = other_debits
+        values["other_credits"] = other_credits
         values["security_deposit_interest"] = -security_interest if security_interest else 0.0
         if debit_tcs:
             values["tcs"] = debit_tcs

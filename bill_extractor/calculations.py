@@ -72,7 +72,7 @@ def calculate_record(values: dict[str, str | float | None]) -> None:
         "net_less_demand_unit_rate",
         safe_divide(
             total_payable - demand if total_payable is not None and demand is not None else None,
-            number("solar_net_billed_units"),
+            kwh,
         ),
     )
     fill("total_payable_unit_rate", safe_divide(total_payable, kwh))
