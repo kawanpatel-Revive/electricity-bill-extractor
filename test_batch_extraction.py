@@ -339,6 +339,64 @@ Debit Fuel Surcharge 0.45 0.00 FC RECOVERY IN SOLAR SET OFF FOR THE MONTH OF JUL
     assert values["other_credits"] == 0
 
 
+def test_medha_ugvcl_adjustment_comment_fixes():
+    data_dir = DATA / "MEDHA UGVCL"
+    filenames = [
+        "MEDHA UGVCL-APRIL 25.pdf",
+        "MEDHA UGVCL-MAY 25.pdf",
+        "MEDHA UGVCL-JUNE 25.pdf",
+        "MEDHA UGVCL-JULY 25.pdf",
+        "MEDHA UGVCL-AUG 25.pdf",
+        "MEDHA UGVCL-SEP 25.pdf",
+        "MEDHA UGVCL-OCT 25.pdf",
+        "MEDHA UGVCL NOV 25.pdf",
+        "MEDHA UGVCL-DEC 25.pdf",
+        "MEDHA UGVCL-JAN 26.pdf",
+        "MEDHA UGVCL-FEB 26.pdf",
+    ]
+    records = extract_files(
+        [InputFile(name, (data_dir / name).read_bytes()) for name in filenames],
+        use_ocr=False,
+    )
+    by_month = {record.values["billing_month"]: record for record in records}
+
+    assert len(records) == 11
+    expected_solar = {
+        "APR-2025": (1855, 5474, 64533, -12140.98),
+        "MAY-2025": (1355, 5178, 75571, -8811.57),
+        "JUN-2025": (480, 2058, 68035, -3121.44),
+        "JUL-2025": (59, 0, 55584, -383.68),
+        "AUG-2025": (543, 736, 45453, -3531.13),
+        "SEP-2025": (1425, 690, 42557, -9053.03),
+        "OCT-2025": (1351, 1723, 45774, -8582.90),
+        "NOV-2025": (1435, 515, 39513, -9116.56),
+        "DEC-2025": (708, 4532, 31420, -4497.92),
+        "JAN-2026": (1655, 1317, 29383, -10514.22),
+        "FEB-2026": (636, 1335, 36993, -4040.51),
+    }
+    for month, (setoff, export, banking, setoff_credit) in expected_solar.items():
+        values = by_month[month].values
+        assert values["solar_setoff_units"] == setoff
+        assert values["solar_net_billed_units"] == values["kwh_consumed"] - setoff
+        assert values["solar_export_units"] == export
+        assert values["solar_banking_units"] == banking
+        assert values["solar_generation_units"] == export + banking
+        assert values["solar_setoff_credit"] == pytest.approx(setoff_credit)
+        assert values["previous_dues"] == 0.0
+
+    july = by_month["JUL-2025"].values
+    assert july["tds_credits"] == pytest.approx(-4855.00)
+    assert july["other_credits"] == pytest.approx(-4801.00)
+
+    september = by_month["SEP-2025"].values
+    assert september["other_debits"] == pytest.approx(38.10)
+
+    february = by_month["FEB-2026"].values
+    assert february["demand_charges"] == pytest.approx(549207.14285714)
+    assert february["total_energy_charges"] == pytest.approx(3777701.31)
+    assert february["total_consumption_charges"] == pytest.approx(3839415.60)
+
+
 def test_photographed_bill_and_adjustment_are_merged():
     filenames = ["1000371676.jpg", "1000371677.jpg"]
     records = extract_files(

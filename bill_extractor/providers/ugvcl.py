@@ -191,8 +191,6 @@ class UGVCLParser(ProviderParser):
                 amounts = re.findall(NUMBER_TOKEN, summary.group(1))
                 if amounts:
                     values["total_consumption_charges"] = parse_number(amounts[-1])
-        values["total_energy_charges"] = values["total_consumption_charges"]
-
         lines = text.splitlines()
         for index, line in enumerate(lines):
             if not (re.search(r"Electricity\s+Duty", line, re.I) and re.search(r"Outstanding\s+Arrears", line, re.I)):
@@ -203,6 +201,7 @@ class UGVCLParser(ProviderParser):
                     values["electricity_duty"] = amounts[0]
                     values["current_month_bill"] = amounts[-2]
                     values["outstanding_arrears"] = amounts[-1]
+                    values["previous_dues"] = 0.0
                     values["wheeling_charges"] = 0.0
                     break
             break
@@ -229,7 +228,7 @@ class UGVCLParser(ProviderParser):
         # the amount/remarks columns in extracted reading order. Normalize
         # those visually single-row entries before applying the row parser.
         wrapped_entry = re.compile(
-            rf"^\s*(Credit\s+(?:Board|ED)|Debit\s+Banking)\s*\n\s*"
+            rf"^\s*(Credit\s+(?:Board|ED)|Debit\s+(?:Banking|Board))\s*\n\s*"
             rf"({NUMBER_TOKEN})\s+({NUMBER_TOKEN})\s+([^\n]+)\n\s*(Charges?)\s*$",
             re.I | re.M,
         )
@@ -245,6 +244,9 @@ class UGVCLParser(ProviderParser):
             multiplied = re.search(r"\(\s*(\d[\d,]*)\s*[Xx×]", remarks)
             if multiplied:
                 return parse_number(multiplied.group(1)) or fallback
+            rated_units = re.search(r"\b(\d[\d,]*(?:\.\d+)?)\s*@", remarks)
+            if rated_units:
+                return parse_number(rated_units.group(1)) or fallback
             unit_values = re.findall(r"\d[\d,]*(?:\.\d+)?", remarks)
             return parse_number(unit_values[-1]) if unit_values else fallback
 
@@ -262,6 +264,7 @@ class UGVCLParser(ProviderParser):
         security_interest = 0.0
         debit_tcs = 0.0
         found_adjustment = False
+        has_solar_unit_credit_layout = "SOLAR UNIT CREDIT - BOARD CHARGE AMOUNT" in text.upper()
 
         entry = re.compile(
             rf"^\s*(Credit\s+Board\s+Charges|Credit\s+ED\s+Charges|Credit\s+TDS|"
@@ -293,6 +296,7 @@ class UGVCLParser(ProviderParser):
             is_tou_credit = "11 AM TO 3 PM" in upper_remarks or "TOU" in upper_remarks
             is_solar_setoff = (
                 "SOLAR SETOFF" in upper_remarks
+                or "SOLAR UNIT CREDIT" in upper_remarks
                 or re.search(r"\bSOLAR\s+(?:BOARD\s+CHARGE\s+|ELEC\.?\s+DUTY\s+)?ADJ\b", upper_remarks)
                 or re.fullmatch(r"\s*SOLAR\s+[A-Z]{3,9}\s+\d{2,4}\s*", upper_remarks)
                 or is_s21_setoff
@@ -300,7 +304,10 @@ class UGVCLParser(ProviderParser):
             if is_credit_ed:
                 electricity_duty_credits -= amount
             elif is_credit_tds:
-                tds_credits -= amount
+                if has_solar_unit_credit_layout and "LESS CREDIT GIVEN TO CONSUMER" in upper_remarks:
+                    other_credits -= amount
+                else:
+                    tds_credits -= amount
             elif is_credit_board and is_solar_setoff:
                 solar_setoff_amount += amount
                 solar_setoff_units += units

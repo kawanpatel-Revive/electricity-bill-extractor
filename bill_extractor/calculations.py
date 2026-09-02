@@ -40,7 +40,19 @@ def calculate_record(values: dict[str, str | float | None]) -> None:
     fill("energy_charges_percent", safe_divide(number("energy_charges"), total_consumption))
     fill("fuel_surcharge_percent", safe_divide(number("fuel_surcharge"), total_consumption))
     fill("tou_charges_percent", safe_divide(number("tou_charges"), total_consumption))
-    fill("total_energy_charges", total_consumption)
+    required_total_parts = (demand, number("energy_charges"), number("fuel_surcharge"))
+    if all(part is not None for part in required_total_parts):
+        total_energy = sum_known(
+            demand,
+            number("excess_demand_charges"),
+            number("energy_charges"),
+            number("fuel_surcharge"),
+            number("power_factor_adjustment"),
+            number("night_rebate"),
+            number("ehv_rebate"),
+            number("tou_charges"),
+        )
+        fill("total_energy_charges", round(total_energy, 2) if total_energy is not None else None)
     fill("current_month_bill", sum_known(total_consumption, number("electricity_duty")))
 
     adjustment_parts = [
