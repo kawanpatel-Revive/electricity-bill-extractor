@@ -339,6 +339,27 @@ Debit Fuel Surcharge 0.45 0.00 FC RECOVERY IN SOLAR SET OFF FOR THE MONTH OF JUL
     assert values["other_credits"] == 0
 
 
+@pytest.mark.parametrize("description", ["Cedit", "Credit", "Debit"])
+def test_ugvcl_wrapped_fuel_surcharge_adjustments(description):
+    text = f"""
+{description} Fuel
+40379.58 0.00 Fuel Surcharge for Jul-2025
+Surcharge
+{description} Fuel
+97749.00 0.00 Fuel Surcharge for Aug-2025
+Surcharge
+"""
+    values = UGVCLParser().parse(text)
+
+    assert values["other_credits"] == pytest.approx(
+        0.0 if description == "Debit" else -138128.58
+    )
+    assert values["other_debits"] == pytest.approx(
+        138128.58 if description == "Debit" else 0.0
+    )
+    assert values["fuel_surcharge"] is None
+
+
 def test_medha_ugvcl_adjustment_comment_fixes():
     data_dir = DATA / "MEDHA UGVCL"
     filenames = [
@@ -390,6 +411,9 @@ def test_medha_ugvcl_adjustment_comment_fixes():
 
     september = by_month["SEP-2025"].values
     assert september["other_debits"] == pytest.approx(38.10)
+    assert september["other_credits"] == pytest.approx(-138128.58)
+    assert september["calculated_adjustment"] == pytest.approx(-89567.04)
+    assert september["calculated_adjustment"] == pytest.approx(september["advance_adjustment"])
 
     february = by_month["FEB-2026"].values
     assert february["demand_charges"] == pytest.approx(549207.14285714)

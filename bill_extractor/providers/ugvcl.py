@@ -228,8 +228,9 @@ class UGVCLParser(ProviderParser):
         # the amount/remarks columns in extracted reading order. Normalize
         # those visually single-row entries before applying the row parser.
         wrapped_entry = re.compile(
-            rf"^\s*(Credit\s+(?:Board|ED)|Debit\s+(?:Banking|Board))\s*\n\s*"
-            rf"({NUMBER_TOKEN})\s+({NUMBER_TOKEN})\s+([^\n]+)\n\s*(Charges?)\s*$",
+            rf"^\s*(Credit\s+(?:Board|ED)|Debit\s+(?:Banking|Board)|"
+            rf"(?:Credit|Cedit|Debit)\s+Fuel)\s*\n\s*"
+            rf"({NUMBER_TOKEN})\s+({NUMBER_TOKEN})\s+([^\n]+)\n\s*(Charges?|Surcharge)\s*$",
             re.I | re.M,
         )
         text = wrapped_entry.sub(
