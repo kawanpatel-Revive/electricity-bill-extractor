@@ -1,13 +1,13 @@
 """Native Excel and JSON exports."""
 
 import json
-from io import BytesIO
 
 from openpyxl import Workbook
 from openpyxl.styles import Alignment, Font, PatternFill
 from openpyxl.utils import get_column_letter
 
 from bill_extractor.models import BillRecord
+from bill_extractor.formula_cache import save_with_formula_results
 from bill_extractor.schema import FIELDS
 from bill_extractor.excel_formulas import COLUMNS, SUMMARY_AVERAGES, SUMMARY_SUMS, TOTAL_SUMS, row_formulas
 
@@ -86,12 +86,10 @@ def export_excel(records: list[BillRecord]) -> bytes:
     details.column_dimensions["C"].width = 15
     details.column_dimensions["D"].width = 80
 
-    output = BytesIO()
     workbook.calculation.calcMode = "auto"
     workbook.calculation.fullCalcOnLoad = True
     workbook.calculation.forceFullCalc = True
-    workbook.save(output)
-    return output.getvalue()
+    return save_with_formula_results(workbook)
 
 
 def export_json(records: list[BillRecord]) -> str:

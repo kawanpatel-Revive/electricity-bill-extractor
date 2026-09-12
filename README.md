@@ -58,7 +58,8 @@ same extraction record.
   zero denominators display `-`; optional missing charge components are ignored.
 - The `Summary` sheet reproduces the sample's mixed SUM/AVERAGE row and separate
   units/payable totals for each customer. Formula results recalculate when opened
-  in Excel. Readers that do not calculate formulas may initially show blank results.
+  in Excel. Cached formula results are also saved so previews and readers that
+  do not calculate formulas can display the initial results.
 - Excel charge ratios and consumption rates use calculated Total Energy/Consumption
   Charges, as in the sample. Formula Adv Adjustment includes wheeling charges and
   previous dues and excludes TCS; TCS is added once in Total Payable. Consequently,
