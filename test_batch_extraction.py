@@ -219,25 +219,25 @@ def test_excel_export_uses_reference_headers_and_missing_marker():
         [InputFile("S P METAL PGVCL.pdf", Path("S P METAL PGVCL.pdf").read_bytes())],
         use_ocr=False,
     )
-    workbook = load_workbook(filename=__import__("io").BytesIO(export_excel(records)), data_only=True)
+    workbook = load_workbook(filename=__import__("io").BytesIO(export_excel(records)), data_only=False)
     sheet = workbook["Extracted Bills"]
 
     assert [cell.value for cell in sheet[1]] == [field.label for field in FIELDS]
     tariff_column = next(index for index, field in enumerate(FIELDS, 1) if field.key == "tariff_category")
     solar_column = next(index for index, field in enumerate(FIELDS, 1) if field.key == "solar_generation_units")
     assert sheet.cell(2, tariff_column).value == "LTMD"
-    assert sheet.cell(2, solar_column).value == "-"
+    assert sheet.cell(2, solar_column).value == '=IF(COUNT(U2,W2)>0,SUM(U2,W2),"-")'
 
 
 def test_percentage_columns_use_excel_percentage_format():
     records = extract("Angiplast_UGVCL-INVOICES 2025-26 Merge.pdf")
-    workbook = load_workbook(filename=__import__("io").BytesIO(export_excel(records)), data_only=True)
+    workbook = load_workbook(filename=__import__("io").BytesIO(export_excel(records)), data_only=False)
     sheet = workbook["Extracted Bills"]
     solar_export_column = next(
         index for index, field in enumerate(FIELDS, 1) if field.key == "solar_export_percent"
     )
 
-    assert sheet.cell(2, solar_export_column).value == pytest.approx(0.131935654)
+    assert sheet.cell(2, solar_export_column).value == '=IF(AND(ISNUMBER(U2),ISNUMBER(Q2),Q2<>0),U2/Q2,"-")'
     assert sheet.cell(2, solar_export_column).number_format == "0.00%"
 
 

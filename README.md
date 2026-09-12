@@ -52,6 +52,19 @@ same extraction record.
 - Ratios and unit rates are calculated only when all required inputs exist.
 - `% Increase in kWh` is a month-over-month calculation per customer.
 - The Excel `Extraction Details` sheet lists provider, source file, pages, and warnings.
+- Excel exports contain editable cell formulas following `Sample_Spreadsheet.xlsx`
+  for ratios, solar units, energy charges, adjustments, payable totals, and unit
+  rates. References follow the export's column order. Missing required inputs or
+  zero denominators display `-`; optional missing charge components are ignored.
+- The `Summary` sheet reproduces the sample's mixed SUM/AVERAGE row and separate
+  units/payable totals for each customer. Formula results recalculate when opened
+  in Excel. Readers that do not calculate formulas may initially show blank results.
+- Excel charge ratios and consumption rates use calculated Total Energy/Consumption
+  Charges, as in the sample. Formula Adv Adjustment includes wheeling charges and
+  previous dues and excludes TCS; TCS is added once in Total Payable. Consequently,
+  workbook calculations can differ from printed bill totals and the unchanged
+  UI/JSON values. Source credit/debit amounts remain numeric inputs, including
+  amounts that the sample entered as literal arithmetic.
 
 The supplied reference workbook contains several broken `#REF!` formulas and a
 small number of manually entered totals that differ from the source adjustment
