@@ -277,6 +277,45 @@ def test_sparse_selectable_text_page_does_not_trigger_ocr():
     assert not warnings
 
 
+def test_dgvcl_uses_common_field_fallback():
+    text = """
+Dakshin Gujarat Vij Company Ltd. DGVCL
+HT BILL FOR THE MONTH OF :AUG-2025
+Consumer No: Tarrif Demand Demand Demand Demand DMD
+12459 HTP-1 200 170 149 170 1154037 0.00
+Meter No: Make CTPT Make CTPT Srno CT Ratio PT Ratio Normal
+DGHTS215 SECURE KVAH KVARH 3
+A.Total Units B.Night Units C.TOU D.1/3 Of Units in A E.Night Concession Units
+56363 15054 21836 18788 15054
+Tot Demand 170 25500
+Energy Charges 56363 4 225452.00
+Fuel charge 56363 2.45 138089.35
+PF Rebate 225452 -2.45% -5523.57
+EHV Rebate 225452.00 1.00 -2254.52
+TOU 21836 0.45 9826.20
+Demand Charge Energy Charge Fuel PF Adj/Rebate Night Rebate EHV Time Of Use GT Charges Tot Consumption Charge
+25500.00 225452.00 138089.35 -5523.57 0.00 -2254.52 9826.20 0.00 391089.46
+Electricity Duty Meter Charges Cross Subsidy Wheeling Charges Parallel Operation Charges Current Month's Bill Outstanding Arrears
+58663.42 0.00 449752.88 0.10
+Charges Delayed Payment Adjust. Adv.Payment / Net Payable TCS Total Payable PREV.BILL TCS Cr Reading Date
+0.00 -19305.86 430447.12 0.00 430447.12 0.00 16-08-2025
+"""
+
+    from bill_extractor.providers.base import ProviderParser
+
+    values = ProviderParser.parse_common(text)
+
+    assert ProviderParser.detected_provider(text) == "DGVCL"
+    assert values["billing_month"] == "AUG-2025"
+    assert values["customer_id"] == "12459"
+    assert values["meter_number"] == "DGHTS215"
+    assert values["kwh_consumed"] == 56363
+    assert values["demand_charges"] == 25500
+    assert values["total_consumption_charges"] == pytest.approx(391089.46)
+    assert values["advance_adjustment"] == pytest.approx(-19305.86)
+    assert values["total_payable"] == pytest.approx(430447.12)
+
+
 def test_ugvcl_wrapped_meter_and_adjustments_are_parsed():
     text = """
 HT BILL FOR THE MONTH OF : APR-2026

@@ -67,7 +67,7 @@ def calculate_record(values: dict[str, str | float | None]) -> None:
         number("other_credits"),
         number("security_deposit_interest"),
     ]
-    if any(part is not None for part in adjustment_parts):
+    if any(part not in (None, 0) for part in adjustment_parts) or number("advance_adjustment") == 0:
         fill("calculated_adjustment", sum(part or 0 for part in adjustment_parts))
 
     fill("consumption_unit_rate", safe_divide(total_consumption, kwh))

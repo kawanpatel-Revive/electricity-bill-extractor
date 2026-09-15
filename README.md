@@ -10,9 +10,11 @@ OCR fallback for scanned pages.
 - UGVCL, including adjustment-detail and solar-banking pages
 - Torrent Power industrial bills
 - PGVCL selectable-text bills
+- Other providers through conservative common-field extraction
 
-Unknown layouts are returned for review instead of being silently interpreted
-with another provider's rules.
+Provider-specific parsers add detailed interpretation. Other layouts use a
+label-driven common-field fallback and are clearly flagged for review instead
+of being silently interpreted with another provider's rules.
 
 ## Setup
 
@@ -77,7 +79,7 @@ calculations rather than copying broken spreadsheet formulas.
 ```text
 bill_extractor/
   document.py       text extraction, OCR fallback, bill segmentation
-  providers/        isolated UGVCL, Torrent, and PGVCL adapters
+  providers/        common extraction plus provider-specific adapters
   schema.py         canonical 58-field contract
   calculations.py   derived values
   validation.py     cross-field consistency checks

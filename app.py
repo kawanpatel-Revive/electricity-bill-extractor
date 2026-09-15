@@ -10,8 +10,8 @@ from bill_extractor.service import InputFile, extract_files
 st.set_page_config(page_title="Electricity Bill Extractor", page_icon="⚡", layout="wide")
 st.title("Electricity Bill Extractor")
 st.caption(
-    "Extract the reference spreadsheet fields from UGVCL, Torrent Power, and PGVCL bills. "
-    "Upload individual bills or merged PDFs."
+    "Extract the reference spreadsheet fields from electricity bills using detailed "
+    "provider parsers and a common-field fallback. Upload individual bills or merged PDFs."
 )
 
 uploaded_files = st.file_uploader(

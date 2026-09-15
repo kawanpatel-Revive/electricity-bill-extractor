@@ -6,6 +6,7 @@ from bill_extractor.calculations import calculate_kwh_change, calculate_record, 
 from bill_extractor.document import extract_pages, segment_bills
 from bill_extractor.models import BillRecord
 from bill_extractor.providers import PARSERS
+from bill_extractor.providers.base import ProviderParser
 from bill_extractor.schema import empty_record
 from bill_extractor.validation import validate
 
@@ -53,10 +54,20 @@ def extract_files(files: list[InputFile], use_ocr: bool = True) -> list[BillReco
         for segment in segment_bills(pages):
             text = "\n".join(page.text for page in segment)
             parser = _parser_for(text)
-            values = parser.parse(text) if parser else empty_record()
+            common_values = ProviderParser.parse_common(text)
+            if parser:
+                specific_values = parser.parse(text)
+                values = {
+                    key: specific_values.get(key)
+                    if specific_values.get(key) is not None
+                    else common_values.get(key)
+                    for key in empty_record()
+                }
+            else:
+                values = common_values
             record = BillRecord(
                 values=values,
-                provider=parser.name if parser else "Unknown",
+                provider=parser.name if parser else ProviderParser.detected_provider(text),
                 filename=source.name,
                 pages=[page.number for page in segment],
                 warnings=[document_warnings[page.number] for page in segment if page.number in document_warnings],
@@ -64,7 +75,9 @@ def extract_files(files: list[InputFile], use_ocr: bool = True) -> list[BillReco
             if not text.strip():
                 record.warnings.append("No text could be extracted from this bill.")
             elif parser is None:
-                record.warnings.append("Electricity provider was not recognized.")
+                record.warnings.append(
+                    "No provider-specific parser matched; only common bill fields were extracted."
+                )
             records.append(record)
 
     records = _merge_related_records(records)
