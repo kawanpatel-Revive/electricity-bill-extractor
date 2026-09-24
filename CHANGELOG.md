@@ -1,5 +1,16 @@
 # Changelog
 
+## 2026-09-24
+
+### Added
+- Added support for Dakshin Gujarat Vij Company (DGVCL) HT bills in the parser set.
+
+### Changed
+- Updated provider registration and batch extraction coverage to include DGVCL billing data.
+
+### Fixed
+- Fixed DGVCL tariff, demand, and payable totals across common HT bill layouts.
+
 ## 2026-08-27
 
 ### Added
