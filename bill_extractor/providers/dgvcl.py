@@ -111,6 +111,22 @@ class DGVCLParser(ProviderParser):
                 amounts = [parse_number(token) for token in re.findall(NUMBER_TOKEN, line)]
                 amounts = [amount for amount in amounts if amount is not None]
                 if len(amounts) >= 8:
+                    summary_values = amounts[-9:] if len(amounts) >= 9 else amounts
+                    if len(summary_values) == 9:
+                        for key, amount in zip(
+                            (
+                                "demand_charges",
+                                "energy_charges",
+                                "fuel_surcharge",
+                                "power_factor_adjustment",
+                                "night_rebate",
+                                "ehv_rebate",
+                                "tou_charges",
+                            ),
+                            summary_values[:7],
+                        ):
+                            if values[key] is None:
+                                values[key] = amount
                     values["total_consumption_charges"] = amounts[-1]
                     break
 

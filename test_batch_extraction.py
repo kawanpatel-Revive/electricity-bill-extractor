@@ -363,6 +363,27 @@ Charges Adjust. Net Payable TCS Total Payable PREV.BULL TCS Cr Reading Date Bill
     assert values["total_payable"] == pytest.approx(423234.10)
 
 
+def test_dgvcl_parser_recovers_tou_charge_from_summary():
+    text = """
+Dakshin Gujarat Vij Company Ltd. DGVCL
+HT BILL FOR THE MONTH OF :JUN-2025
+SUMMARY OF CHARGES
+Demand Charge Energy Charge Fuel Surcharge PF Adj/Rebate Night Rebate EHV Rebate Time Of Use Charges GT Charges Tot Consumption Charge
+25500.00 245616.00 150439.80 -6017.59 0.00 -2456.16 10464.75 0.00 423546.80
+Electricity Duty Meter Charges Current Month's Bill Outstanding Arrears
+63532.02 0.00 487078.82 0.86
+Delayed Payment Adv.Payment / Net Payable TCS Total Payable Reading Date
+0.00 0.00 487079.68 0.00 487079.68 0.00 16-06-2025
+"""
+
+    from bill_extractor.providers.dgvcl import DGVCLParser
+
+    values = DGVCLParser().parse(text)
+
+    assert values["tou_charges"] == pytest.approx(10464.75)
+    assert values["total_consumption_charges"] == pytest.approx(423546.80)
+
+
 def test_ugvcl_wrapped_meter_and_adjustments_are_parsed():
     text = """
 HT BILL FOR THE MONTH OF : APR-2026
