@@ -50,28 +50,20 @@ def export_excel(records: list[BillRecord]) -> bytes:
         sheet.column_dimensions[get_column_letter(index)].width = min(max(longest + 2, 12), 34)
 
     if records:
-        summary = workbook.create_sheet("Summary")
-        summary.append([field.label for field in FIELDS])
-        for customer, rows in customer_rows.items():
-            for label, averages, sums in (("Summary (SUM / AVERAGE)", SUMMARY_AVERAGES, SUMMARY_SUMS), ("Totals", frozenset(), TOTAL_SUMS)):
-                row = summary.max_row + 1
-                summary.cell(row, 1, label)
-                summary.cell(row, 3, customer).data_type = "s"
-                for index, field in enumerate(FIELDS, 1):
-                    if field.key not in averages | sums:
-                        continue
-                    references = ",".join(f"'Extracted Bills'!{COLUMNS[field.key]}{source_row}" for source_row in rows)
-                    operation = "AVERAGE" if field.key in averages else "SUM"
-                    cell = summary.cell(row, index, f'=IF(COUNT({references})>0,{operation}({references}),"-")')
-                    if field.kind == "percent":
-                        cell.number_format = "0.00%"
-        for cell in summary[1]:
-            cell.fill = header_fill
-            cell.font = Font(color="FFFFFF", bold=True)
-            cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
-        for column in sheet.column_dimensions:
-            summary.column_dimensions[column].width = sheet.column_dimensions[column].width
-        summary.freeze_panes = "D2"
+        average_font = Font(color="FF9900", bold=True)
+        sum_font = Font(color="000000", bold=True)
+        data_rows = range(2, len(records) + 2)
+        for averages, sums in ((SUMMARY_AVERAGES, SUMMARY_SUMS), (frozenset(), TOTAL_SUMS)):
+            row = sheet.max_row + 1
+            for index, field in enumerate(FIELDS, 1):
+                if field.key not in averages | sums:
+                    continue
+                references = ",".join(f"{COLUMNS[field.key]}{source_row}" for source_row in data_rows)
+                operation = "AVERAGE" if field.key in averages else "SUM"
+                cell = sheet.cell(row, index, f'=IF(COUNT({references})>0,{operation}({references}),"-")')
+                cell.font = average_font if operation == "AVERAGE" else sum_font
+                if field.kind == "percent":
+                    cell.number_format = "0.00%"
 
     details = workbook.create_sheet("Extraction Details")
     details.append(["Provider", "Filename", "Pages", "Warnings"])

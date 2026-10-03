@@ -384,6 +384,38 @@ Delayed Payment Adv.Payment / Net Payable TCS Total Payable Reading Date
     assert values["total_consumption_charges"] == pytest.approx(423546.80)
 
 
+def test_dgvcl_parser_handles_time_discount_summary_column_and_line_suffixes():
+    text = """
+Dakshin Gujarat Vij Company Ltd. DGVCL
+HT BILL FOR THE MONTH OF :SEP-2025
+Energy Charges 54864 4 219456.00 Units 0 0 0
+Night Rebate 14696 0 0 Amount
+Fuel charge 54864 2.30 126187.20 Adj (Debit) 0 0
+PF Rebate 219456 -2.45% -5376.67
+EHV Rebate 219456.00 1.00 -2194.56
+TOU 21534 0.45 9690.30 AMG Charges
+SUMMARY OF CHARGES
+Demand Charge Energy Charge Fuel Surcharge PF Adj/Rebate Night Rebate EHV Time Of Use Time DISC GT Tot Consumption Charge
+25500.00 219456.00 126187.20 -5376.67 0.00 -2194.56 9690.30 0.00 0.00 373262.27
+Electricity Duty Meter Charges Current Month's Bill Outstanding Arrears
+55989.34 0.00 429251.61 0.12
+Delayed Payment Adv.Payment / Net Payable TCS Total Payable Reading Date
+0.00 -14275.59 414976.14 0.00 414976.14 0.00 16-09-2025
+"""
+
+    from bill_extractor.providers.dgvcl import DGVCLParser
+
+    values = DGVCLParser().parse(text)
+
+    assert values["energy_charges"] == pytest.approx(219456.00)
+    assert values["fuel_surcharge"] == pytest.approx(126187.20)
+    assert values["power_factor_adjustment"] == pytest.approx(-5376.67)
+    assert values["night_rebate"] == 0
+    assert values["ehv_rebate"] == pytest.approx(-2194.56)
+    assert values["tou_charges"] == pytest.approx(9690.30)
+    assert values["total_consumption_charges"] == pytest.approx(373262.27)
+
+
 def test_ugvcl_wrapped_meter_and_adjustments_are_parsed():
     text = """
 HT BILL FOR THE MONTH OF : APR-2026

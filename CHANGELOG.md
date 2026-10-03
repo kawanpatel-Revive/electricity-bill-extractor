@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026-10-03
+
+### Changed
+- Show customer summaries and totals alongside extracted bills, with complete charge breakdowns.
+
+### Fixed
+- Correct DGVCL extraction for bills with the newer time-discount column and extended charge lines.
+- Preserve printed advance adjustments in calculated and payable amounts when no individual adjustments are present.
+
 ## 2026-09-24
 
 ### Added

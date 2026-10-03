@@ -53,12 +53,26 @@ def row_formulas(row: int, previous_row: int | None = None) -> dict[str, str]:
         "ehv_rebate", "tou_charges",
     ), ("demand_charges", "energy_charges"))
     formulas["current_month_bill"] = total(("total_consumption_charges", "electricity_duty"), ("total_consumption_charges",))
-    formulas["calculated_adjustment"] = total((
+    adjustment_keys = (
         "solar_banking_charges", "solar_credit", "solar_setoff_credit", "wheeling_charges",
         "previous_dues", "electricity_duty_credits", "tou_charge_credits", "tds_credits",
         "security_deposit_interest", "other_credits", "other_debits",
-    ))
-    formulas["net_payable"] = total(("current_month_bill", "calculated_adjustment", "delayed_payment_charges", "outstanding_arrears"), ("current_month_bill",))
+    )
+    adjustment_cells = ",".join(ref(key) for key in adjustment_keys)
+    advance_adjustment = ref("advance_adjustment")
+    formulas["calculated_adjustment"] = (
+        f'=IF(COUNT({adjustment_cells})>0,SUM({adjustment_cells}),'
+        f'IF(ISNUMBER({advance_adjustment}),{advance_adjustment},"-"))'
+    )
+    current_bill = ref("current_month_bill")
+    calculated_adjustment = ref("calculated_adjustment")
+    delayed_payment = ref("delayed_payment_charges")
+    arrears = ref("outstanding_arrears")
+    formulas["net_payable"] = (
+        f'=IF(AND(ISNUMBER({current_bill})),SUM({current_bill},'
+        f'IF(ISNUMBER({advance_adjustment}),{advance_adjustment},{calculated_adjustment}),'
+        f'{delayed_payment},{arrears}),"-")'
+    )
     formulas["total_payable"] = total(("net_payable", "tcs"), ("net_payable",))
     for target, amount in (("consumption_demand_unit_rate", "total_energy_charges"), ("net_less_demand_unit_rate", "total_payable")):
         a, demand = ref(amount), ref("demand_charges")
@@ -75,14 +89,21 @@ SUMMARY_AVERAGES = frozenset((
     "tou_kwh", "tou_percent", "one_third_total_units", "solar_setoff_percent",
     "solar_export_percent", "solar_banking_units", "solar_banking_percent",
     "demand_charges_percent", "energy_charges_percent", "fuel_surcharge_percent",
-    "tou_charges_percent", "current_month_bill", "net_payable", "total_payable",
+    "fppas_percent", "tou_charges_percent", "current_month_bill", "net_payable", "total_payable",
     "consumption_demand_unit_rate", "consumption_unit_rate", "net_less_demand_unit_rate",
     "total_payable_unit_rate",
 ))
 SUMMARY_SUMS = frozenset((
     "solar_generation_units", "demand_charges", "energy_charges", "fuel_surcharge",
-    "power_factor_adjustment", "ehv_rebate", "tou_charges", "total_energy_charges",
-    "total_consumption_charges", "electricity_duty", "solar_banking_charges",
-    "advance_adjustment", "calculated_adjustment", "outstanding_arrears",
+    "base_fppas", "fppas_charges", "power_factor_adjustment", "night_rebate",
+    "ehv_rebate", "tou_charges", "total_energy_charges", "total_consumption_charges",
+    "electricity_duty", "solar_banking_charges", "solar_credit", "solar_setoff_credit",
+    "wheeling_charges", "previous_dues", "electricity_duty_credits",
+    "tou_charge_credits", "tds_credits", "other_debits", "delayed_payment_charges",
+    "security_deposit_interest", "other_credits", "advance_adjustment",
+    "calculated_adjustment", "outstanding_arrears", "tcs",
 ))
-TOTAL_SUMS = frozenset(("kwh_consumed", "night_units", "tou_kwh", "one_third_total_units", "net_payable", "total_payable"))
+TOTAL_SUMS = frozenset((
+    "kwh_consumed", "night_units", "tou_kwh", "one_third_total_units",
+    "solar_banking_units", "net_payable", "total_payable",
+))

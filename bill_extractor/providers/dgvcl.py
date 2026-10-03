@@ -30,7 +30,7 @@ class DGVCLParser(ProviderParser):
     @staticmethod
     def _line_amount(text: str, label: str) -> float | None:
         match = re.search(
-            rf"^\s*{label}\s+{NUMBER_TOKEN}\s+{NUMBER_TOKEN}%?\s+({NUMBER_TOKEN})\s*$",
+            rf"^\s*{label}\s+{NUMBER_TOKEN}\s+{NUMBER_TOKEN}%?\s+({NUMBER_TOKEN})(?:\s+.*)?$",
             text,
             re.I | re.M,
         )
@@ -110,9 +110,12 @@ class DGVCLParser(ProviderParser):
             for line in reversed(lines[summary_start + 1 : duty_start]):
                 amounts = [parse_number(token) for token in re.findall(NUMBER_TOKEN, line)]
                 amounts = [amount for amount in amounts if amount is not None]
-                if len(amounts) >= 8:
-                    summary_values = amounts[-9:] if len(amounts) >= 9 else amounts
-                    if len(summary_values) == 9:
+                if len(amounts) >= 9:
+                    # DGVCL added a Time Discount column before GT charges in
+                    # September 2025. The first seven charge columns and the
+                    # final consumption total retain their positions.
+                    summary_values = amounts
+                    if len(summary_values) >= 9:
                         for key, amount in zip(
                             (
                                 "demand_charges",

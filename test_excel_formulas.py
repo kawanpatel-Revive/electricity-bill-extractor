@@ -24,13 +24,25 @@ def test_formula_export_preserves_inputs_and_groups_customers():
     assert sheet["J4"].value == '=IF(AND(ISNUMBER(I4),ISNUMBER(I2),I2<>0),(I4-I2)/I2,"-")'
     assert sheet["J4"].number_format == "0.00%"
     # Sample references must follow the reordered adjustment/payable columns.
-    assert sheet["BE2"].value == '=IF(COUNT(AR2,AS2,AT2,AU2,AV2,AW2,AX2,AY2,BB2,BC2,AZ2)>0,SUM(AR2,AS2,AT2,AU2,AV2,AW2,AX2,AY2,BB2,BC2,AZ2),"-")'
+    assert sheet["BE2"].value == '=IF(COUNT(AR2,AS2,AT2,AU2,AV2,AW2,AX2,AY2,BB2,BC2,AZ2)>0,SUM(AR2,AS2,AT2,AU2,AV2,AW2,AX2,AY2,BB2,BC2,AZ2),IF(ISNUMBER(BD2),BD2,"-"))'
+    assert sheet["BG2"].value == '=IF(AND(ISNUMBER(AQ2)),SUM(AQ2,IF(ISNUMBER(BD2),BD2,BE2),BA2,BF2),"-")'
     assert sheet["BI2"].value == '=IF(AND(ISNUMBER(BG2)),SUM(BG2,BH2),"-")'
     assert sheet["BK2"].value == '=IF(AND(ISNUMBER(AN2),ISNUMBER(I2),I2<>0),AN2/I2,"-")'
-    summary = workbook["Summary"]
-    assert summary["I2"].value == '=IF(COUNT(\'Extracted Bills\'!I2,\'Extracted Bills\'!I4)>0,AVERAGE(\'Extracted Bills\'!I2,\'Extracted Bills\'!I4),"-")'
-    assert "SUM(" in summary["I3"].value
-    assert "I3" in summary["I4"].value
+    assert "Summary" not in workbook.sheetnames
+    assert sheet["A5"].value is None
+    assert sheet["C5"].value is None
+    assert sheet["I5"].value == '=IF(COUNT(I2,I3,I4)>0,AVERAGE(I2,I3,I4),"-")'
+    assert sheet["I5"].font.bold is True
+    assert sheet["I5"].font.color.rgb == "00FF9900"
+    assert sheet["AF5"].value.startswith("=IF(COUNT(")
+    assert "SUM(" in sheet["AF5"].value
+    assert sheet["AF5"].font.bold is True
+    assert sheet["AF5"].font.color.rgb == "00000000"
+    assert "SUM(" in sheet["I6"].value
+    assert sheet["I6"].font.bold is True
+    assert sheet["I6"].font.color.rgb == "00000000"
+    assert "SUM(" in sheet["W6"].value
+    assert sheet.max_row == 6
     assert workbook.calculation.calcMode == "auto"
     assert workbook.calculation.fullCalcOnLoad
     assert sheet.auto_filter.ref == "A1:BM4"
@@ -59,8 +71,8 @@ def test_cached_results_include_dependencies_summaries_and_missing_values():
     assert sheet["BE2"].value == -10
     assert sheet["BI2"].value == 1195
     assert sheet["BM2"].value == 11.95
-    assert values["Summary"]["BI2"].value == 1195
-    assert values["Summary"]["BI3"].value == 1195
+    assert sheet["BI3"].value == 1195
+    assert sheet["BI4"].value == 1195
     for tab in formulas:
         for row in tab:
             for cell in row:
@@ -72,7 +84,7 @@ def test_cached_results_include_dependencies_summaries_and_missing_values():
     changed = load_workbook(BytesIO(save_with_formula_results(formulas)), data_only=True)
     assert changed["Extracted Bills"]["L2"].value == "-"
     assert changed["Extracted Bills"]["AN2"].value == 2100
-    assert changed["Summary"]["AN2"].value == 2100
+    assert changed["Extracted Bills"]["AN3"].value == 2100
 
 
 def test_cache_rejects_unsupported_or_circular_formulas():
